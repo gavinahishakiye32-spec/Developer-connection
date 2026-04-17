@@ -25,7 +25,6 @@ A full-stack platform where developers showcase skills, post content, and get hi
 ```bash
 cd server
 cp .env.example .env
-# Edit .env with your MongoDB URI and JWT secret
 npm install
 npm run dev
 ```
