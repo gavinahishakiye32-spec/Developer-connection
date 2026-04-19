@@ -11,6 +11,10 @@ const userSchema = new mongoose.Schema({
   level: { type: String, enum: ['beginner', 'intermediate', 'experienced'], default: 'beginner' },
   company: { type: String, default: '' },
   avatar: { type: String, default: '' },
+  github: { type: String, default: '' },
+  portfolio: { type: String, default: '' },
+  location: { type: String, default: '' },
+  savedJobs: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Job' }],
 }, { timestamps: true });
 
 userSchema.pre('save', async function (next) {

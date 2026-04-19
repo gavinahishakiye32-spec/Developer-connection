@@ -101,6 +101,53 @@ export default function JobDetail() {
           </div>
           <LevelBadge level={job.level} />
         </div>
+
+        {/* Meta info */}
+        <div className="flex flex-wrap gap-3 mb-4 text-sm">
+          {job.jobType && (
+            <span className="inline-flex items-center gap-1 text-gray-600 capitalize">
+              🗂 {job.jobType}
+            </span>
+          )}
+          {job.location && (
+            <span className="inline-flex items-center gap-1 text-gray-600">
+              📍 {job.location}
+            </span>
+          )}
+          {job.remote && (
+            <span className="inline-flex items-center gap-1 text-teal-600 font-medium">
+              🌍 Remote
+            </span>
+          )}
+          {job.salary && (
+            <span className="inline-flex items-center gap-1 text-gray-700 font-medium">
+              💰 {job.salary}
+            </span>
+          )}
+        </div>
+
+        {/* Required skills */}
+        {job.requiredSkills?.length > 0 && (
+          <div className="mb-4">
+            <p className="text-sm font-medium text-gray-700 mb-2">Required Skills</p>
+            <div className="flex flex-wrap gap-1.5">
+              {job.requiredSkills.map((skill, i) => {
+                const matched = user?.skills?.map(s => s.toLowerCase()).includes(skill.toLowerCase())
+                return (
+                  <span
+                    key={i}
+                    className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                      matched ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                    }`}
+                  >
+                    {matched && '✓ '}{skill}
+                  </span>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         <p className="text-gray-700 whitespace-pre-wrap mb-4">{job.description}</p>
         <div className="flex items-center gap-4 text-sm text-gray-500 pt-4 border-t border-gray-100">
           <span>Posted by <strong>{job.postedBy?.name}</strong></span>

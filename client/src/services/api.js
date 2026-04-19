@@ -35,6 +35,8 @@ export const usersAPI = {
   getAll: (params) => api.get('/users', { params }),
   getById: (id) => api.get(`/users/${id}`),
   update: (data) => api.put('/users/update', data),
+  toggleSaveJob: (jobId) => api.post(`/users/save-job/${jobId}`),
+  getSavedJobs: () => api.get('/users/saved-jobs'),
 }
 
 // Posts
@@ -51,6 +53,8 @@ export const jobsAPI = {
   create: (data) => api.post('/jobs', data),
   getAll: (params) => api.get('/jobs', { params }),
   getById: (id) => api.get(`/jobs/${id}`),
+  update: (id, data) => api.put(`/jobs/${id}`, data),
+  delete: (id) => api.delete(`/jobs/${id}`),
 }
 
 // Applications

@@ -4,7 +4,17 @@ import { jobsAPI } from '../services/api'
 
 export default function PostJob() {
   const navigate = useNavigate()
-  const [form, setForm] = useState({ title: '', description: '', company: '', level: 'beginner' })
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    company: '',
+    level: 'beginner',
+    jobType: 'full-time',
+    location: '',
+    remote: false,
+    salary: '',
+    requiredSkills: '',
+  })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -13,7 +23,13 @@ export default function PostJob() {
     setError('')
     setLoading(true)
     try {
-      await jobsAPI.create(form)
+      const payload = {
+        ...form,
+        requiredSkills: form.requiredSkills
+          ? form.requiredSkills.split(',').map(s => s.trim()).filter(Boolean)
+          : [],
+      }
+      await jobsAPI.create(payload)
       navigate('/manage-jobs')
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to post job')
@@ -34,6 +50,7 @@ export default function PostJob() {
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">{error}</div>
         )}
         <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Title */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Job Title</label>
             <input
@@ -46,6 +63,7 @@ export default function PostJob() {
             />
           </div>
 
+          {/* Company */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
             <input
@@ -58,6 +76,7 @@ export default function PostJob() {
             />
           </div>
 
+          {/* Level */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Required Level</label>
             <div className="grid grid-cols-3 gap-3">
@@ -78,6 +97,81 @@ export default function PostJob() {
             </div>
           </div>
 
+          {/* Job Type */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Job Type</label>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {['full-time', 'part-time', 'contract', 'internship'].map(t => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setForm({ ...form, jobType: t })}
+                  className={`py-2 rounded-lg border-2 text-sm font-medium transition-colors capitalize ${
+                    form.jobType === t
+                      ? 'border-blue-600 bg-blue-50 text-blue-700'
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Location + Remote */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+              <input
+                type="text"
+                value={form.location}
+                onChange={e => setForm({ ...form, location: e.target.value })}
+                className="input-field"
+                placeholder="e.g. Lagos, Nigeria"
+              />
+            </div>
+            <div className="flex items-end pb-1">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.remote}
+                  onChange={e => setForm({ ...form, remote: e.target.checked })}
+                  className="w-4 h-4 text-blue-600 rounded"
+                />
+                <span className="text-sm font-medium text-gray-700">Remote / Open to remote</span>
+              </label>
+            </div>
+          </div>
+
+          {/* Salary */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Salary / Compensation <span className="text-gray-400">(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={form.salary}
+              onChange={e => setForm({ ...form, salary: e.target.value })}
+              className="input-field"
+              placeholder='e.g. "$2,000 – $4,000/mo" or "Negotiable"'
+            />
+          </div>
+
+          {/* Required Skills */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Required Skills <span className="text-gray-400">(comma-separated)</span>
+            </label>
+            <input
+              type="text"
+              value={form.requiredSkills}
+              onChange={e => setForm({ ...form, requiredSkills: e.target.value })}
+              className="input-field"
+              placeholder="e.g. React, Node.js, MongoDB"
+            />
+          </div>
+
+          {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Job Description</label>
             <textarea
