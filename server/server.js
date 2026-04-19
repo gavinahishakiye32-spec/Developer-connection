@@ -2,6 +2,7 @@ const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const connectDB = require('./config/db');
+const passport = require('./config/passport');
 
 dotenv.config();
 connectDB();
@@ -9,13 +10,14 @@ connectDB();
 const app = express();
 const allowedOrigins = process.env.CLIENT_URL
   ? process.env.CLIENT_URL.split(',')
-  : true; // allow all when not set
+  : true;
 
 app.use(cors({
   origin: allowedOrigins,
   credentials: true,
 }));
 app.use(express.json());
+app.use(passport.initialize());
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));

@@ -17,6 +17,8 @@ import SearchDevelopers from './pages/SearchDevelopers'
 import Notifications from './pages/Notifications'
 import Profile from './pages/Profile'
 
+import OAuthCallback from './pages/OAuthCallback'
+
 export default function App() {
   return (
     <AuthProvider>
@@ -29,6 +31,7 @@ export default function App() {
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/oauth-callback" element={<OAuthCallback />} />
 
               {/* Protected - All authenticated users */}
               <Route path="/feed" element={<ProtectedRoute><Feed /></ProtectedRoute>} />

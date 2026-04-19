@@ -27,7 +27,7 @@ const getUserById = async (req, res) => {
 
 const updateUser = async (req, res) => {
   try {
-    const { name, bio, skills, level, company, avatar, github, portfolio, location } = req.body;
+    const { name, bio, skills, level, company, avatar, github, portfolio, location, profileLink } = req.body;
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
@@ -40,6 +40,7 @@ const updateUser = async (req, res) => {
     if (github !== undefined) user.github = github;
     if (portfolio !== undefined) user.portfolio = portfolio;
     if (location !== undefined) user.location = location;
+    if (profileLink !== undefined) user.profileLink = profileLink;
 
     const updated = await user.save();
     res.json({
@@ -55,6 +56,8 @@ const updateUser = async (req, res) => {
       github: updated.github,
       portfolio: updated.portfolio,
       location: updated.location,
+      profileLink: updated.profileLink,
+      oauthProvider: updated.oauthProvider,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
