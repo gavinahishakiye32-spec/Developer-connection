@@ -30,6 +30,16 @@ export default function Home() {
             </>
           )}
         </div>
+        <div className="mt-6 flex items-center justify-center gap-2 text-sm text-gray-500">
+          <div className="flex -space-x-2">
+            {['🧑‍💻', '👩‍💻', '🧑‍💻'].map((emoji, i) => (
+              <div key={i} className="w-7 h-7 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-xs">
+                {emoji}
+              </div>
+            ))}
+          </div>
+          <span><span className="font-semibold text-gray-700">20+ developers</span> have already joined</span>
+        </div>
       </div>
 
       {/* How it works */}
