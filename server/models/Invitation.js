@@ -8,4 +8,7 @@ const invitationSchema = new mongoose.Schema({
   status: { type: String, enum: ['pending', 'accepted', 'declined'], default: 'pending' },
 }, { timestamps: true });
 
+invitationSchema.index({ developer: 1, createdAt: -1 });
+invitationSchema.index({ employer: 1, createdAt: -1 });
+
 module.exports = mongoose.model('Invitation', invitationSchema);

@@ -5,7 +5,7 @@ const createPost = async (req, res) => {
   try {
     const { content } = req.body;
     const post = await Post.create({ user: req.user._id, content });
-    await post.populate('user', 'name avatar role');
+    await post.populate('user', 'name avatar role level');
     res.status(201).json(post);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -15,8 +15,11 @@ const createPost = async (req, res) => {
 const getPosts = async (req, res) => {
   try {
     const posts = await Post.find()
+      .select('user content likes createdAt') // only what the feed needs
       .populate('user', 'name avatar role level')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .limit(50) // cap at 50 posts — prevents loading hundreds at once
+      .lean();
     res.json(posts);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -25,7 +28,7 @@ const getPosts = async (req, res) => {
 
 const likePost = async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id);
+    const post = await Post.findById(req.params.id).select('likes');
     if (!post) return res.status(404).json({ message: 'Post not found' });
 
     const alreadyLiked = post.likes.includes(req.user._id);
@@ -44,7 +47,7 @@ const likePost = async (req, res) => {
 const commentOnPost = async (req, res) => {
   try {
     const { text } = req.body;
-    const post = await Post.findById(req.params.id);
+    const post = await Post.findById(req.params.id).select('_id');
     if (!post) return res.status(404).json({ message: 'Post not found' });
 
     const comment = await Comment.create({ post: req.params.id, user: req.user._id, text });
@@ -58,8 +61,10 @@ const commentOnPost = async (req, res) => {
 const getPostComments = async (req, res) => {
   try {
     const comments = await Comment.find({ post: req.params.id })
+      .select('user text createdAt')
       .populate('user', 'name avatar')
-      .sort({ createdAt: 1 });
+      .sort({ createdAt: 1 })
+      .lean();
     res.json(comments);
   } catch (error) {
     res.status(500).json({ message: error.message });

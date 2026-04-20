@@ -75,6 +75,7 @@ export const invitationsAPI = {
 // Notifications
 export const notificationsAPI = {
   getAll: () => api.get('/notifications'),
+  getUnreadCount: () => api.get('/notifications/unread-count'),
   markRead: () => api.put('/notifications/read'),
 }
 

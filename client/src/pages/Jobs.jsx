@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { jobsAPI, usersAPI } from '../services/api'
 import JobCard from '../components/JobCard'
 import { useAuth } from '../context/AuthContext'
@@ -11,20 +11,16 @@ export default function Jobs() {
   const [typeFilter, setTypeFilter] = useState('')
   const [remoteOnly, setRemoteOnly] = useState(false)
   const [savedJobIds, setSavedJobIds] = useState([])
-  const [activeTab, setActiveTab] = useState('all') // 'all' | 'saved'
+  const [activeTab, setActiveTab] = useState('all')
+  const debounceRef = useRef(null)
 
-  useEffect(() => {
-    loadJobs()
-    if (user?.role === 'developer') loadSaved()
-  }, [levelFilter, typeFilter, remoteOnly])
-
-  const loadJobs = async () => {
+  const loadJobs = useCallback(async (level, type, remote) => {
     setLoading(true)
     try {
       const params = {}
-      if (levelFilter) params.level = levelFilter
-      if (typeFilter) params.jobType = typeFilter
-      if (remoteOnly) params.remote = true
+      if (level) params.level = level
+      if (type) params.jobType = type
+      if (remote) params.remote = true
       const res = await jobsAPI.getAll(params)
       setJobs(res.data)
     } catch (err) {
@@ -32,16 +28,25 @@ export default function Jobs() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const loadSaved = async () => {
-    try {
-      const res = await usersAPI.getSavedJobs()
-      setSavedJobIds(res.data.map(j => j._id))
-    } catch (err) {
-      console.error(err)
+  // Load saved jobs once on mount — not on every filter change
+  useEffect(() => {
+    if (user?.role === 'developer') {
+      usersAPI.getSavedJobs()
+        .then(res => setSavedJobIds(res.data.map(j => j._id)))
+        .catch(() => {})
     }
-  }
+  }, [user?.role])
+
+  // Debounce filter changes — wait 300ms after last change before fetching
+  useEffect(() => {
+    clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      loadJobs(levelFilter, typeFilter, remoteOnly)
+    }, 300)
+    return () => clearTimeout(debounceRef.current)
+  }, [levelFilter, typeFilter, remoteOnly, loadJobs])
 
   const handleToggleSave = async (jobId) => {
     try {

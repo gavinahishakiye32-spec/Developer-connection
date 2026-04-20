@@ -39,23 +39,42 @@ export default function Profile() {
 
   useEffect(() => {
     const targetId = id || user?._id
-    if (targetId) {
-      usersAPI.getById(targetId).then(res => {
-        setProfile(res.data)
-        setForm({
-          name: res.data.name,
-          bio: res.data.bio || '',
-          skills: res.data.skills?.join(', ') || '',
-          level: res.data.level || 'beginner',
-          company: res.data.company || '',
-          avatar: res.data.avatar || '',
-          github: res.data.github || '',
-          portfolio: res.data.portfolio || '',
-          location: res.data.location || '',
-          profileLink: res.data.profileLink || '',
-        })
-      }).catch(console.error).finally(() => setLoading(false))
+    if (!targetId) return
+
+    // If viewing own profile, seed from AuthContext immediately (no loading flash)
+    // then still fetch to get full profile fields not in AuthContext
+    if (!id || id === user?._id) {
+      setProfile(user)
+      setForm({
+        name: user?.name || '',
+        bio: user?.bio || '',
+        skills: user?.skills?.join(', ') || '',
+        level: user?.level || 'beginner',
+        company: user?.company || '',
+        avatar: user?.avatar || '',
+        github: user?.github || '',
+        portfolio: user?.portfolio || '',
+        location: user?.location || '',
+        profileLink: user?.profileLink || '',
+      })
+      setLoading(false)
     }
+
+    usersAPI.getById(targetId).then(res => {
+      setProfile(res.data)
+      setForm({
+        name: res.data.name,
+        bio: res.data.bio || '',
+        skills: res.data.skills?.join(', ') || '',
+        level: res.data.level || 'beginner',
+        company: res.data.company || '',
+        avatar: res.data.avatar || '',
+        github: res.data.github || '',
+        portfolio: res.data.portfolio || '',
+        location: res.data.location || '',
+        profileLink: res.data.profileLink || '',
+      })
+    }).catch(console.error).finally(() => setLoading(false))
   }, [id, user?._id])
 
   const handlePhotoChange = async (e) => {

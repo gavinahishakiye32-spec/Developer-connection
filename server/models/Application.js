@@ -7,4 +7,8 @@ const applicationSchema = new mongoose.Schema({
   status: { type: String, enum: ['pending', 'accepted', 'rejected'], default: 'pending' },
 }, { timestamps: true });
 
+// Indexes for the two most common query patterns
+applicationSchema.index({ developer: 1, createdAt: -1 });
+applicationSchema.index({ job: 1, createdAt: -1 });
+
 module.exports = mongoose.model('Application', applicationSchema);

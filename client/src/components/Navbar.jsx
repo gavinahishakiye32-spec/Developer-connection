@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { notificationsAPI } from '../services/api'
+import api from '../services/api'
 
 export default function Navbar() {
   const { user, logout } = useAuth()
@@ -9,14 +9,27 @@ export default function Navbar() {
   const location = useLocation()
   const [unread, setUnread] = useState(0)
   const [menuOpen, setMenuOpen] = useState(false)
+  const intervalRef = useRef(null)
+
+  const fetchUnreadCount = () => {
+    api.get('/notifications/unread-count')
+      .then(res => setUnread(res.data.count))
+      .catch(() => {})
+  }
 
   useEffect(() => {
-    if (user) {
-      notificationsAPI.getAll().then(res => {
-        setUnread(res.data.filter(n => !n.read).length)
-      }).catch(() => {})
-    }
-  }, [user, location.pathname])
+    if (!user) { setUnread(0); return }
+    // Fetch immediately on login/mount
+    fetchUnreadCount()
+    // Then poll every 30 seconds — not on every route change
+    intervalRef.current = setInterval(fetchUnreadCount, 30_000)
+    return () => clearInterval(intervalRef.current)
+  }, [user])
+
+  // Reset badge to 0 when user visits the notifications page
+  useEffect(() => {
+    if (location.pathname === '/notifications') setUnread(0)
+  }, [location.pathname])
 
   const handleLogout = async () => {
     await logout()

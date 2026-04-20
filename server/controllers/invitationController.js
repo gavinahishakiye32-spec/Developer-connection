@@ -5,12 +5,12 @@ const User = require('../models/User');
 const sendInvitation = async (req, res) => {
   try {
     const { developerId, jobId, message } = req.body;
-    const developer = await User.findById(developerId);
+    const developer = await User.findById(developerId).select('role').lean();
     if (!developer || developer.role !== 'developer') {
       return res.status(404).json({ message: 'Developer not found' });
     }
 
-    const existing = await Invitation.findOne({ employer: req.user._id, developer: developerId, job: jobId });
+    const existing = await Invitation.exists({ employer: req.user._id, developer: developerId, job: jobId });
     if (existing) return res.status(400).json({ message: 'Invitation already sent' });
 
     const invitation = await Invitation.create({ employer: req.user._id, developer: developerId, job: jobId, message });
@@ -32,14 +32,18 @@ const getInvitations = async (req, res) => {
     let invitations;
     if (req.user.role === 'developer') {
       invitations = await Invitation.find({ developer: req.user._id })
+        .select('employer job message status createdAt')
         .populate('employer', 'name company avatar')
         .populate('job', 'title level')
-        .sort({ createdAt: -1 });
+        .sort({ createdAt: -1 })
+        .lean();
     } else {
       invitations = await Invitation.find({ employer: req.user._id })
+        .select('developer job message status createdAt')
         .populate('developer', 'name email level skills avatar')
         .populate('job', 'title level')
-        .sort({ createdAt: -1 });
+        .sort({ createdAt: -1 })
+        .lean();
     }
     res.json(invitations);
   } catch (error) {
@@ -50,20 +54,22 @@ const getInvitations = async (req, res) => {
 const respondToInvitation = async (req, res) => {
   try {
     const { status } = req.body;
-    const invitation = await Invitation.findById(req.params.id).populate('job', 'title');
+    const invitation = await Invitation.findById(req.params.id)
+      .populate('job', 'title');
     if (!invitation) return res.status(404).json({ message: 'Invitation not found' });
     if (invitation.developer.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
     invitation.status = status;
-    await invitation.save();
-
-    await Notification.create({
-      user: invitation.employer,
-      type: 'invitation_response',
-      message: `${req.user.name} ${status} your invitation for ${invitation.job.title}`,
-    });
+    await Promise.all([
+      invitation.save(),
+      Notification.create({
+        user: invitation.employer,
+        type: 'invitation_response',
+        message: `${req.user.name} ${status} your invitation for ${invitation.job.title}`,
+      }),
+    ]);
 
     res.json(invitation);
   } catch (error) {

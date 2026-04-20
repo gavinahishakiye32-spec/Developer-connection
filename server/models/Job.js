@@ -7,12 +7,18 @@ const jobSchema = new mongoose.Schema({
   level: { type: String, enum: ['beginner', 'intermediate', 'experienced'], required: true },
   postedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   applicants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  // Enriched fields
   requiredSkills: [{ type: String }],
-  salary: { type: String, default: '' },          // e.g. "$3,000 – $5,000/mo" or "Negotiable"
-  location: { type: String, default: '' },         // e.g. "Lagos, Nigeria" or "Remote"
+  salary: { type: String, default: '' },
+  location: { type: String, default: '' },
   remote: { type: Boolean, default: false },
   jobType: { type: String, enum: ['full-time', 'part-time', 'contract', 'internship'], default: 'full-time' },
 }, { timestamps: true });
+
+// Indexes for frequently filtered/sorted fields
+jobSchema.index({ level: 1 });
+jobSchema.index({ jobType: 1 });
+jobSchema.index({ remote: 1 });
+jobSchema.index({ postedBy: 1 });
+jobSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('Job', jobSchema);

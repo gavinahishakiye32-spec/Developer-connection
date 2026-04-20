@@ -20,10 +20,18 @@ const createJob = async (req, res) => {
 
 const getJobs = async (req, res) => {
   try {
-    const { level } = req.query;
+    const { level, jobType, remote } = req.query;
     const filter = {};
     if (level) filter.level = level;
-    const jobs = await Job.find(filter).populate('postedBy', 'name company').sort({ createdAt: -1 });
+    if (jobType) filter.jobType = jobType;
+    if (remote === 'true') filter.remote = true;
+
+    const jobs = await Job.find(filter)
+      .select('-applicants') // never send full applicant arrays to the list view
+      .populate('postedBy', 'name company')
+      .sort({ createdAt: -1 })
+      .lean(); // plain objects — no Mongoose overhead
+
     res.json(jobs);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -33,9 +41,12 @@ const getJobs = async (req, res) => {
 const getJobById = async (req, res) => {
   try {
     const job = await Job.findById(req.params.id)
-      .populate('postedBy', 'name company')
-      .populate('applicants', 'name email level');
+      .populate('postedBy', 'name company avatar')
+      .lean();
     if (!job) return res.status(404).json({ message: 'Job not found' });
+    // Return applicant count only — not full user objects
+    job.applicantCount = job.applicants?.length || 0;
+    delete job.applicants;
     res.json(job);
   } catch (error) {
     res.status(500).json({ message: error.message });

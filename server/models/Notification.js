@@ -7,4 +7,9 @@ const notificationSchema = new mongoose.Schema({
   read: { type: Boolean, default: false },
 }, { timestamps: true });
 
+// Index for fetching user notifications sorted by date
+notificationSchema.index({ user: 1, createdAt: -1 });
+// Partial index for fast unread count queries
+notificationSchema.index({ user: 1, read: 1 });
+
 module.exports = mongoose.model('Notification', notificationSchema);
