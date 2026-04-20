@@ -1,16 +1,9 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
+// By the time this renders, loading is always false (App.jsx blocks routing until then).
 export default function ProtectedRoute({ children, role }) {
-  const { user, loading } = useAuth()
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
-      </div>
-    )
-  }
+  const { user } = useAuth()
 
   if (!user) return <Navigate to="/login" replace />
   if (role && user.role !== role) return <Navigate to="/feed" replace />
