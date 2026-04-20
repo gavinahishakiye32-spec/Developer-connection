@@ -3,35 +3,51 @@ import api from '../services/api'
 
 const AuthContext = createContext(null)
 
-// No token is stored in the browser at all.
-// The JWT lives in an httpOnly cookie — JS cannot read or steal it.
-// We only store the user profile (no sensitive data) in memory (useState).
-// On refresh, /api/auth/me re-validates the cookie and returns the profile.
+const USER_KEY = 'devcon_user'
+
+// Read cached user synchronously — this runs before the first render
+// so returning users see the app instantly with no loading screen.
+const readCachedUser = () => {
+  try {
+    const raw = localStorage.getItem(USER_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
+  // Initialize from localStorage — no loading flash for returning users
+  const [user, setUser] = useState(readCachedUser)
+  // Only show the full-screen loader if there is NO cached user at all
+  const [loading, setLoading] = useState(!readCachedUser())
 
-  // On every app load, ask the server to validate the cookie and return the profile
   useEffect(() => {
+    // Always validate the cookie in the background.
+    // If cached user exists: this runs silently and updates if anything changed.
+    // If no cached user: this is the first visit, loading=true until resolved.
     api.get('/auth/me')
-      .then((res) => setUser(res.data))
-      .catch(() => setUser(null))
+      .then((res) => {
+        setUser(res.data)
+        localStorage.setItem(USER_KEY, JSON.stringify(res.data))
+      })
+      .catch(() => {
+        // Cookie invalid or expired — clear everything
+        setUser(null)
+        localStorage.removeItem(USER_KEY)
+      })
       .finally(() => setLoading(false))
   }, [])
 
-  // Server sets the httpOnly cookie; we just store the profile in state
   const login = (userData) => {
     setUser(userData)
+    localStorage.setItem(USER_KEY, JSON.stringify(userData))
   }
 
   const logout = async () => {
-    try {
-      await api.post('/auth/logout')
-    } catch {
-      // ignore — clear state regardless
-    }
+    try { await api.post('/auth/logout') } catch { /* ignore */ }
     setUser(null)
+    localStorage.removeItem(USER_KEY)
   }
 
   return (

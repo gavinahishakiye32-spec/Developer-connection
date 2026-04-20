@@ -25,7 +25,7 @@ const Notifications   = lazy(() => import('./pages/Notifications'))
 const Profile         = lazy(() => import('./pages/Profile'))
 const OAuthCallback   = lazy(() => import('./pages/OAuthCallback'))
 
-// Shown while a lazy page chunk is downloading (usually <200ms on fast connections)
+// Shown while a lazy page chunk is downloading (usually <100ms)
 function PageLoader() {
   return (
     <div className="min-h-[60vh] flex items-center justify-center">
@@ -34,8 +34,8 @@ function PageLoader() {
   )
 }
 
-// Full-screen loader shown while the auth cookie is being validated.
-// Blocks ALL routing so the URL never flickers during the session check.
+// Only shown on the very first visit ever (no cached user, no cookie yet).
+// Returning users never see this — they go straight to their page.
 function AppLoader() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 gap-4">
