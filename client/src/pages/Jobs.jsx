@@ -1,65 +1,62 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { jobsAPI, usersAPI } from '../services/api'
 import JobCard from '../components/JobCard'
 import { useAuth } from '../context/AuthContext'
+import { useCachedFetch } from '../hooks/useCachedFetch'
 
 export default function Jobs() {
   const { user } = useAuth()
-  const [jobs, setJobs] = useState([])
-  const [loading, setLoading] = useState(true)
   const [levelFilter, setLevelFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const [remoteOnly, setRemoteOnly] = useState(false)
-  const [savedJobIds, setSavedJobIds] = useState([])
   const [activeTab, setActiveTab] = useState('all')
   const debounceRef = useRef(null)
+  const [filterKey, setFilterKey] = useState('jobs:all')
 
-  const loadJobs = useCallback(async (level, type, remote) => {
-    setLoading(true)
-    try {
-      const params = {}
-      if (level) params.level = level
-      if (type) params.jobType = type
-      if (remote) params.remote = true
-      const res = await jobsAPI.getAll(params)
-      setJobs(res.data)
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  // Load saved jobs once on mount — not on every filter change
-  useEffect(() => {
-    if (user?.role === 'developer') {
-      usersAPI.getSavedJobs()
-        .then(res => setSavedJobIds(res.data.map(j => j._id)))
-        .catch(() => {})
-    }
-  }, [user?.role])
-
-  // Debounce filter changes — wait 300ms after last change before fetching
-  useEffect(() => {
+  // Trigger filter change with debounce
+  const applyFilter = (level, type, remote) => {
     clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
-      loadJobs(levelFilter, typeFilter, remoteOnly)
-    }, 300)
-    return () => clearTimeout(debounceRef.current)
-  }, [levelFilter, typeFilter, remoteOnly, loadJobs])
+      const key = `jobs:${level}:${type}:${remote}`
+      setFilterKey(key)
+    }, 250)
+  }
+
+  const setLevel = (v) => { setLevelFilter(v); applyFilter(v, typeFilter, remoteOnly) }
+  const setType = (v) => { setTypeFilter(v); applyFilter(levelFilter, v, remoteOnly) }
+  const setRemote = (v) => { setRemoteOnly(v); applyFilter(levelFilter, typeFilter, v) }
+
+  const { data: jobs, loading, mutate: mutateJobs } = useCachedFetch(
+    filterKey,
+    () => {
+      const params = {}
+      if (levelFilter) params.level = levelFilter
+      if (typeFilter) params.jobType = typeFilter
+      if (remoteOnly) params.remote = true
+      return jobsAPI.getAll(params).then(r => r.data)
+    },
+    [filterKey]
+  )
+
+  const { data: savedJobsData } = useCachedFetch(
+    user?.role === 'developer' ? 'saved-jobs' : null,
+    () => usersAPI.getSavedJobs().then(r => r.data)
+  )
+  const savedJobIds = (savedJobsData || []).map(j => j._id)
 
   const handleToggleSave = async (jobId) => {
+    // Optimistic toggle
+    const wasSaved = savedJobIds.includes(jobId)
     try {
-      const res = await usersAPI.toggleSaveJob(jobId)
-      setSavedJobIds(res.data.savedJobs)
+      await usersAPI.toggleSaveJob(jobId)
     } catch (err) {
       console.error(err)
     }
   }
 
   const displayedJobs = activeTab === 'saved'
-    ? jobs.filter(j => savedJobIds.includes(j._id))
-    : jobs
+    ? (jobs || []).filter(j => savedJobIds.includes(j._id))
+    : (jobs || [])
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
@@ -74,37 +71,27 @@ export default function Jobs() {
         </div>
       </div>
 
-      {/* Tabs (developer only) */}
       {user?.role === 'developer' && (
         <div className="flex gap-1 mb-4 bg-gray-100 p-1 rounded-lg w-fit">
           {['all', 'saved'].map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
+            <button key={tab} onClick={() => setActiveTab(tab)}
               className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors capitalize ${
                 activeTab === tab ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
+              }`}>
               {tab === 'saved' ? `🔖 Saved (${savedJobIds.length})` : 'All Jobs'}
             </button>
           ))}
         </div>
       )}
 
-      {/* Filters */}
       <div className="card mb-6 space-y-3">
         <div className="flex gap-2 flex-wrap">
           <span className="text-xs font-medium text-gray-500 self-center">Level:</span>
           {['', 'beginner', 'intermediate', 'experienced'].map(l => (
-            <button
-              key={l}
-              onClick={() => setLevelFilter(l)}
+            <button key={l} onClick={() => setLevel(l)}
               className={`px-3 py-1 rounded-full text-xs font-medium transition-colors border ${
-                levelFilter === l
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300'
-              }`}
-            >
+                levelFilter === l ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300'
+              }`}>
               {l === '' ? 'All' : l.charAt(0).toUpperCase() + l.slice(1)}
             </button>
           ))}
@@ -112,25 +99,15 @@ export default function Jobs() {
         <div className="flex gap-2 flex-wrap items-center">
           <span className="text-xs font-medium text-gray-500 self-center">Type:</span>
           {['', 'full-time', 'part-time', 'contract', 'internship'].map(t => (
-            <button
-              key={t}
-              onClick={() => setTypeFilter(t)}
+            <button key={t} onClick={() => setType(t)}
               className={`px-3 py-1 rounded-full text-xs font-medium transition-colors border capitalize ${
-                typeFilter === t
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300'
-              }`}
-            >
+                typeFilter === t ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300'
+              }`}>
               {t === '' ? 'All' : t}
             </button>
           ))}
           <label className="flex items-center gap-1.5 ml-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={remoteOnly}
-              onChange={e => setRemoteOnly(e.target.checked)}
-              className="w-3.5 h-3.5 text-blue-600 rounded"
-            />
+            <input type="checkbox" checked={remoteOnly} onChange={e => setRemote(e.target.checked)} className="w-3.5 h-3.5 text-blue-600 rounded" />
             <span className="text-xs font-medium text-gray-600">Remote only</span>
           </label>
         </div>
@@ -160,9 +137,7 @@ export default function Jobs() {
       ) : (
         <div className="space-y-4">
           {displayedJobs.map(job => (
-            <JobCard
-              key={job._id}
-              job={job}
+            <JobCard key={job._id} job={job}
               saved={savedJobIds.includes(job._id)}
               onToggleSave={user?.role === 'developer' ? handleToggleSave : undefined}
             />

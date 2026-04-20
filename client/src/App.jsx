@@ -1,9 +1,12 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { CacheProvider } from './context/CacheContext'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import ProtectedRoute from './components/ProtectedRoute'
+import { postsAPI, jobsAPI } from './services/api'
+import { useCache } from './context/CacheContext'
 
 // Lazy-load every page — each becomes its own JS chunk loaded on demand.
 // The browser only downloads the code for the page the user actually visits.
@@ -45,7 +48,20 @@ function AppLoader() {
 }
 
 function AppRoutes() {
-  const { loading } = useAuth()
+  const { loading, user } = useAuth()
+  const cache = useCache()
+
+  // As soon as auth resolves and user is logged in, prefetch the two most
+  // visited pages (Feed + Jobs) in the background — before the user navigates
+  useEffect(() => {
+    if (!user) return
+    if (cache.get('posts') === null) {
+      postsAPI.getAll().then(r => cache.set('posts', r.data)).catch(() => {})
+    }
+    if (cache.get('jobs:all') === null) {
+      jobsAPI.getAll().then(r => cache.set('jobs:all', r.data)).catch(() => {})
+    }
+  }, [user])
 
   if (loading) return <AppLoader />
 
@@ -90,10 +106,12 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
-    </AuthProvider>
+    <CacheProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </AuthProvider>
+    </CacheProvider>
   )
 }

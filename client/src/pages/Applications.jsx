@@ -1,34 +1,30 @@
-import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { applicationsAPI } from '../services/api'
+import { useCachedFetch } from '../hooks/useCachedFetch'
 import LevelBadge from '../components/LevelBadge'
 
+const statusStyle = { pending: 'badge-yellow', accepted: 'badge-green', rejected: 'badge-red' }
+
+const timeAgo = (date) => {
+  const days = Math.floor((Date.now() - new Date(date).getTime()) / 86400000)
+  if (days === 0) return 'Today'
+  if (days === 1) return 'Yesterday'
+  return `${days} days ago`
+}
+
 export default function Applications() {
-  const [applications, setApplications] = useState([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    applicationsAPI.getMy().then(res => setApplications(res.data)).catch(console.error).finally(() => setLoading(false))
-  }, [])
-
-  const statusStyle = {
-    pending: 'badge-yellow',
-    accepted: 'badge-green',
-    rejected: 'badge-red',
-  }
-
-  const timeAgo = (date) => {
-    const days = Math.floor((Date.now() - new Date(date).getTime()) / 86400000)
-    if (days === 0) return 'Today'
-    if (days === 1) return 'Yesterday'
-    return `${days} days ago`
-  }
+  const { data: applications, loading } = useCachedFetch(
+    'my-applications',
+    () => applicationsAPI.getMy().then(r => r.data)
+  )
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">My Applications</h1>
-        <p className="text-gray-600 text-sm mt-1">{applications.length} application{applications.length !== 1 ? 's' : ''}</p>
+        <p className="text-gray-600 text-sm mt-1">
+          {(applications || []).length} application{(applications || []).length !== 1 ? 's' : ''}
+        </p>
       </div>
 
       {loading ? (
@@ -40,7 +36,7 @@ export default function Applications() {
             </div>
           ))}
         </div>
-      ) : applications.length === 0 ? (
+      ) : (applications || []).length === 0 ? (
         <div className="text-center py-16">
           <div className="text-5xl mb-4">📋</div>
           <h3 className="text-lg font-semibold text-gray-700 mb-2">No applications yet</h3>
@@ -49,7 +45,7 @@ export default function Applications() {
         </div>
       ) : (
         <div className="space-y-4">
-          {applications.map(app => (
+          {(applications || []).map(app => (
             <div key={app._id} className="card">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
@@ -65,9 +61,7 @@ export default function Applications() {
                     <p className="text-sm text-gray-600 mt-2 bg-gray-50 rounded p-2 line-clamp-2">{app.coverLetter}</p>
                   )}
                 </div>
-                <span className={`badge ${statusStyle[app.status]} capitalize flex-shrink-0`}>
-                  {app.status}
-                </span>
+                <span className={`badge ${statusStyle[app.status]} capitalize flex-shrink-0`}>{app.status}</span>
               </div>
             </div>
           ))}

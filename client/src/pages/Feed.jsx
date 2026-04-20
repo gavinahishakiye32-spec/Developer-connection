@@ -1,40 +1,43 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { postsAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
+import { useCachedFetch } from '../hooks/useCachedFetch'
 import PostCard from '../components/PostCard'
 import Avatar from '../components/Avatar'
 
 export default function Feed() {
   const { user } = useAuth()
-  const [posts, setPosts] = useState([])
   const [content, setContent] = useState('')
-  const [loading, setLoading] = useState(true)
   const [posting, setPosting] = useState(false)
 
-  useEffect(() => {
-    loadPosts()
-  }, [])
-
-  const loadPosts = async () => {
-    try {
-      const res = await postsAPI.getAll()
-      setPosts(res.data)
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const { data: posts, loading, mutate } = useCachedFetch(
+    'posts',
+    () => postsAPI.getAll().then(r => r.data)
+  )
 
   const handlePost = async (e) => {
     e.preventDefault()
     if (!content.trim()) return
     setPosting(true)
+
+    // Optimistic update — add post to top instantly before server responds
+    const optimistic = {
+      _id: `temp-${Date.now()}`,
+      content,
+      user: { _id: user._id, name: user.name, avatar: user.avatar, role: user.role, level: user.level },
+      likes: [],
+      createdAt: new Date().toISOString(),
+    }
+    mutate(prev => [optimistic, ...(prev || [])])
+    setContent('')
+
     try {
       const res = await postsAPI.create({ content })
-      setPosts([res.data, ...posts])
-      setContent('')
+      // Replace optimistic entry with real server response
+      mutate(prev => prev.map(p => p._id === optimistic._id ? res.data : p))
     } catch (err) {
+      // Rollback on failure
+      mutate(prev => prev.filter(p => p._id !== optimistic._id))
       console.error(err)
     } finally {
       setPosting(false)

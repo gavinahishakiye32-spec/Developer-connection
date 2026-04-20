@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { usePrefetch } from '../hooks/usePrefetch'
 import api from '../services/api'
 
 export default function Navbar() {
@@ -10,6 +11,7 @@ export default function Navbar() {
   const [unread, setUnread] = useState(0)
   const [menuOpen, setMenuOpen] = useState(false)
   const intervalRef = useRef(null)
+  const prefetch = usePrefetch()
 
   const fetchUnreadCount = () => {
     api.get('/notifications/unread-count')
@@ -19,14 +21,11 @@ export default function Navbar() {
 
   useEffect(() => {
     if (!user) { setUnread(0); return }
-    // Fetch immediately on login/mount
     fetchUnreadCount()
-    // Then poll every 30 seconds — not on every route change
     intervalRef.current = setInterval(fetchUnreadCount, 30_000)
     return () => clearInterval(intervalRef.current)
   }, [user])
 
-  // Reset badge to 0 when user visits the notifications page
   useEffect(() => {
     if (location.pathname === '/notifications') setUnread(0)
   }, [location.pathname])
@@ -53,18 +52,18 @@ export default function Navbar() {
           {/* Desktop Nav */}
           {user && (
             <div className="hidden md:flex items-center gap-1">
-              <Link to="/feed" className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive('/feed') ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}>
+              <Link to="/feed" onMouseEnter={() => prefetch('/feed')} className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive('/feed') ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}>
                 Feed
               </Link>
-              <Link to="/jobs" className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive('/jobs') ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}>
+              <Link to="/jobs" onMouseEnter={() => prefetch('/jobs')} className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive('/jobs') ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}>
                 Jobs
               </Link>
               {user.role === 'developer' && (
                 <>
-                  <Link to="/applications" className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive('/applications') ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}>
+                  <Link to="/applications" onMouseEnter={() => prefetch('/applications')} className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive('/applications') ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}>
                     Applications
                   </Link>
-                  <Link to="/invitations" className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive('/invitations') ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}>
+                  <Link to="/invitations" onMouseEnter={() => prefetch('/invitations')} className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive('/invitations') ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}>
                     Invitations
                   </Link>
                 </>
@@ -80,7 +79,7 @@ export default function Navbar() {
                   <Link to="/search-developers" className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive('/search-developers') ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}>
                     Find Devs
                   </Link>
-                  <Link to="/invitations" className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive('/invitations') ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}>
+                  <Link to="/invitations" onMouseEnter={() => prefetch('/invitations')} className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive('/invitations') ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}>
                     Invitations
                   </Link>
                 </>
