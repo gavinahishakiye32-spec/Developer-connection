@@ -1,15 +1,14 @@
 import axios from 'axios'
 
+const TOKEN_KEY = 'devcon_token'
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://developer-connection-1.onrender.com/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
 })
 
 api.interceptors.request.use((config) => {
-  const stored = localStorage.getItem('devcon_user')
-  if (stored) {
-    const { token } = JSON.parse(stored)
-    if (token) config.headers.Authorization = `Bearer ${token}`
-  }
+  const token = sessionStorage.getItem(TOKEN_KEY)
+  if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
 
@@ -18,6 +17,7 @@ api.interceptors.response.use(
   (err) => {
     if (err.response?.status === 401) {
       localStorage.removeItem('devcon_user')
+      sessionStorage.removeItem(TOKEN_KEY)
       window.location.href = '/login'
     }
     return Promise.reject(err)

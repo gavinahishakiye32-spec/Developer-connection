@@ -3,8 +3,10 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { authAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://developer-connection-1.onrender.com/api'
-const SERVER_BASE = API_BASE.replace('/api', '')
+// Resolve the OAuth redirect URL without exposing the backend origin in the UI.
+// In production VITE_API_URL is set; in dev the Vite proxy forwards /api → localhost:5000.
+const API_BASE = import.meta.env.VITE_API_URL || '/api'
+const SERVER_BASE = API_BASE.startsWith('http') ? API_BASE.replace('/api', '') : ''
 
 export default function Login() {
   const { login } = useAuth()
