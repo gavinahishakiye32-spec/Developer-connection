@@ -1,24 +1,24 @@
 import axios from 'axios'
 
-const TOKEN_KEY = 'devcon_token'
-
+// withCredentials: true — tells the browser to send the httpOnly cookie on every request.
+// This is required for cross-origin requests (Vercel frontend → Render backend).
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
+  withCredentials: true,
 })
 
-api.interceptors.request.use((config) => {
-  const token = sessionStorage.getItem(TOKEN_KEY)
-  if (token) config.headers.Authorization = `Bearer ${token}`
-  return config
-})
+// No request interceptor needed — the browser sends the cookie automatically.
 
 api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
-      localStorage.removeItem('devcon_user')
-      sessionStorage.removeItem(TOKEN_KEY)
-      window.location.href = '/login'
+      // Don't redirect if we're already on an auth page or calling /auth/me
+      const url = err.config?.url || ''
+      const isAuthRoute = url.includes('/auth/me') || url.includes('/auth/login') || url.includes('/auth/register')
+      if (!isAuthRoute) {
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(err)
   }

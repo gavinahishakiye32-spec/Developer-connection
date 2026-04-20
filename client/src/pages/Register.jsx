@@ -3,8 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { authAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://developer-connection-1.onrender.com/api'
-const SERVER_BASE = API_BASE.replace('/api', '')
+const API_BASE = import.meta.env.VITE_API_URL || '/api'
+const SERVER_BASE = API_BASE.startsWith('http') ? API_BASE.replace('/api', '') : ''
 
 export default function Register() {
   const { login } = useAuth()
